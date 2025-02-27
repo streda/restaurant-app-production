@@ -10,7 +10,7 @@ A **full-stack** restaurant ordering system that allows users to browse menus, a
 - 🔐 **Authentication** - Secure login/signup using JWT authentication.
 - 📡 **Real-Time Order Tracking** - Uses **WebSockets** for live order status updates.
 - 🛠️ **Admin Dashboard** - Manage orders, menu items, and customers.
-- ☁️ **Cloud Deployment** - Hosted on **Render** for easy access.
+- ☁️ **Cloud Deployment** - Hosted on **Heroku** for easy access.
 
 ---
 
@@ -23,7 +23,7 @@ A **full-stack** restaurant ordering system that allows users to browse menus, a
 | **Socket.io** | Real-time order updates |
 | **Tailwind CSS** | UI Styling |
 | **JWT & bcrypt.js** | Authentication & Security |
-| **Render** | Deployment |
+| **Heroku** | Deployment |
 
 ---
 
