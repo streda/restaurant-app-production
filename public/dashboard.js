@@ -16,11 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error fetching protected data:', error);
-            // handle a failed request 
             window.location.href = '/login.html';
         });
     } else {
-        // No token found, redirect to login
         window.location.href = '/login.html';
     }
 });

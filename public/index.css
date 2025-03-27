@@ -297,7 +297,7 @@ body{
 
 }
 
-.section-summary{
+.order-summary-container{
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -472,14 +472,6 @@ body{
     color: white;
 }
 
-
-/* 
-    THIS IS FOR CUSTOM MADE CHECKOUT FORM
-
-    Payment form box styles 
-    keep payment-form-box more generic and reusable for other 
-    types of content that may not require a flex layout.
-*/
 .payment-form-box { 
     position: relative;
     background-color: white;
@@ -515,20 +507,17 @@ body{
     cursor: pointer;
 }
 
-/* ********************* OVERLAY payment form box   ********************** */
-
-/* Overlay styles */
 body .overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* See-through background */
+    background-color: rgba(0, 0, 0, 0.5); 
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Ensure it's above other content */
+    z-index: 1000; 
 }
 
 .close-button {

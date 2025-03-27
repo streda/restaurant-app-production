@@ -10,7 +10,7 @@ A **full-stack** restaurant ordering system that allows users to browse menus, a
 - 🔐 **Authentication** - Secure login/signup using JWT authentication.
 - 📡 **Real-Time Order Tracking** - Uses **WebSockets** for live order status updates.
 - 🛠️ **Admin Dashboard** - Manage orders, menu items, and customers.
-- ☁️ **Cloud Deployment** - Hosted on **Heroku** for easy access.
+- ☁️ **Cloud Deployment** - Hosted on **Render** for easy access.
 
 ---
 
@@ -23,14 +23,15 @@ A **full-stack** restaurant ordering system that allows users to browse menus, a
 | **Socket.io** | Real-time order updates |
 | **Tailwind CSS** | UI Styling |
 | **JWT & bcrypt.js** | Authentication & Security |
-| **Heroku** | Deployment |
+| **Render** | Deployment |
 
 ---
 
 ## 💻 **Getting Started**
 ### **1️⃣ Clone the Repository**
 ```bash
-git clone https://github.com/streda/restaurant-app-production.git
+git clone https://github.com/streda/RestaurantAppImprovement1.git
+cd restaurant-app
 ```
 
 
@@ -57,7 +58,17 @@ npm run server
 
 ### 5️⃣ Start the Frontend
 ```bash
+cd client
 npm start
+```
+
+### Sign up to use the app
+Click login button (if not registered yet, it will show a sign up button where you can sign up)
+In case of any issue use the default 
+
+```bash
+username: user 
+password: user1
 ```
 
 ## 🛒 Stripe Payment (Test Mode)

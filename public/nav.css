@@ -16,9 +16,7 @@
 
 @media  (min-width: 1000px){
   .navbar-container {
-    /* Ensures body doesn't become narrower than 1000px */
     min-width: 1000px; 
-    /* Ensures body doesn't become wider than 1000px */
     max-width: 1000px; 
   }
 }
@@ -31,10 +29,10 @@
 }
 
 .navbar-links ul{
-  list-style: none; /* Remove default list styling */
+  list-style: none; 
   margin: 0;
   padding: 0;
-  display: flex; /* This will make the links horizontal */
+  display: flex; 
 }
 
 .navbar-links li:hover{
@@ -43,22 +41,20 @@
 
 .navbar-links li {
   list-style: none;
-  padding: 0; /* Remove padding from <li> and apply it to <a> instead */
+  padding: 0; 
 }
 
 .navbar-links li a , .navbar-links li button {
   text-decoration: none;
   color: cyan;
-  padding: 1rem; /* Apply padding here to increase the clickable area */
-  display: block; /* Make <a> fill the <li> */
-  width: 100%; /* Ensure it spans the full width of its parent */
-  height: 100%; /* Ensure it spans the full height of its parent */
+  padding: 1rem; 
+  display: block; 
+  width: 100%; 
+  height: 100%; 
   text-align: left;
 
 }
 
-
-/* Close "X" button */
 .close-btn{
   display: none;
   position: absolute;
@@ -69,7 +65,6 @@
   cursor: pointer;
 }
 
-/* Navbar Hamburger Menu */
 .toggle-button{
   position: absolute;
   top: 1.5rem;
@@ -81,11 +76,10 @@
   height: 21px;
 }
 
-/* The Hamburger menu three bar lines */
 .toggle-button .bar {
   display: block;
-  height: 3px; /* Reduce the height to make the lines thinner */
-  width: 100%; /* Adjust the width as needed */
+  height: 3px; 
+  width: 100%; 
   background: cyan;
   border-radius: 10px;
   transition: all 0.3s ease;
@@ -93,21 +87,21 @@
 
 @media (max-width: 280px), (max-width: 667px){
   .navbar-links {
-    position: absolute; /* Or absolute, depending on layout */
+    position: absolute; 
     top: 0;
     left: 0;
-    width: 100%; /* Full width */
+    width: 100%; 
     height: 100%;
-    background: rgba(0, 0, 0, .8); /* Semi-transparent background */
-    z-index: 1000; /* Ensure it's above other content */
+    background: rgba(0, 0, 0, .8); 
+    z-index: 1000; 
   }
   
   .navbar-links.active {
-    display: block; /* Show when active */
+    display: block; 
   }
   
   .close-btn{
-    display: block; /* Make the close button visible */
+    display: block; 
   }
 }
 
@@ -115,22 +109,21 @@
   .toggle-button {
     position: absolute;
     top: 10px;
-    right: 10px; /* Keep the menu towards the right but with some margin */
-    display: flex; /* Make sure it's displayed */
+    right: 10px; 
+    display: flex; 
   }
 
   .brand-title {
-    font-size: 14px; /* Smaller font size for narrow screens */
-    padding-right: 10px; /* Prevents overlap */
+    font-size: 14px; 
+    padding-right: 10px; 
   }
 
   .navbar-container {
-    justify-content: space-between; /* Align items to opposite ends */
-    padding: 10px 10px; /* Adjust padding to ensure spacing */
+    justify-content: space-between; 
+    padding: 10px 10px; 
   }
 }
 
-/* @media (max-width: 500px) */
 @media (max-width: 667px) {
   .toggle-button{
     display: flex;
@@ -166,7 +159,7 @@
 
 #profile-container {
   display: flex;
-  align-items: center;  /* Ensures vertical centering within the li */
+  align-items: center; 
 }
 
 #profile-container .button {
@@ -175,17 +168,17 @@
   align-items: center;
   border: none;
 
-  width: 40px;   /* Ensure the width is equal to the height */
-  height: 40px;  /* Ensure the height is equal to the width */
+  width: 40px;   
+  height: 40px;  
     
-  padding: 0;  /* Adjust padding to prevent shape distortion */
+  padding: 0;  
 
   border-radius: 50%;
-  background-color: #4CAF50;  /* Example color */
+  background-color: #4CAF50;  
   color: white;
   cursor: pointer;
   text-align: center;
-  font-size: 12px;  /* Adjust font size as needed */
+  font-size: 12px;  
 }
 
 .dropdown-content {

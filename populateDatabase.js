@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import MenuItem from './models/menuItemModel.js'; 
-import { menuArray } from './public/data.js'; 
+import MenuItem from './models/menuItemModel.js';
+import { menuArray } from './public/data.js';
 
 dotenv.config();
 
@@ -11,15 +11,33 @@ mongoose.connect(mongoUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {
+    console.log("Connected to MongoDB");
 }).catch(err => {
     console.error("Failed to connect to MongoDB", err);
     process.exit(1);
 });
 
+const removeDuplicateItems = (array) => {
+    const seenNames = new Set();
+    return array.filter(item => {
+        if (seenNames.has(item.name)) {
+            return false;
+        } else {
+            seenNames.add(item.name);
+            return true;
+        }
+    });
+};
+
 const populateDatabase = async () => {
     try {
-        await MenuItem.deleteMany(); // Clear existing data
-        await MenuItem.insertMany(menuArray); // Insert new data
+        const cleanedMenuArray = removeDuplicateItems(menuArray);
+        console.log(`Seeding ${cleanedMenuArray.length} unique menu items...`);
+
+        await MenuItem.deleteMany(); 
+        await MenuItem.insertMany(cleanedMenuArray);
+
+        console.log("Database populated with cleaned menu items.");
         mongoose.connection.close();
     } catch (error) {
         console.error("Failed to populate database", error);

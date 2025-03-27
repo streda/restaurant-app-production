@@ -1,51 +1,84 @@
-const express = require("express");
+import express from "express";
+import Order from "../models/order.js"; 
+import MenuItem from "../models/menuItemModel.js"; 
+import authenticateToken from "../middleware/auth.js"; 
+
 const router = express.Router();
-const Cart = require("../models/Cart"); // Cart model
-const authenticateUser = require("../middleware/auth"); // Middleware to get user info
 
-// Add item to cart (or increase quantity if already exists)
-router.post("/add-to-cart", authenticateUser, async (req, res) => {
+router.post("/add-to-cart", authenticateToken, async (req, res) => {
+  const { menuItemId, quantity } = req.body;
+
   try {
-    const { menuItemId, quantity } = req.body;
-    const userId = req.user.id; // Get user ID from token
+    const menuItem = await MenuItem.findById(menuItemId);
+    if (!menuItem) {
+      return res.status(404).json({ success: false, message: "Menu item not found" });
+    }
+    await Order.deleteMany({
+      userId: req.myUser.userId,
+      status: "pending",
+      items: { $size: 0 }
+    });
 
-    let cart = await Cart.findOne({ user: userId });
+    let order = await Order.findOne({
+      userId: req.myUser.userId,
+      status: "pending"
+    });
 
-    if (!cart) {
-      cart = new Cart({ user: userId, items: [] });
+    if (!order) {
+      order = new Order({
+        userId: req.myUser.userId,
+        items: [],
+        status: "pending"
+      });
     }
 
-    const existingItem = cart.items.find(item => item.menuItem.toString() === menuItemId);
-
-    if (existingItem) {
-      existingItem.quantity += quantity;
+    const existingItemIndex = order.items.findIndex(item =>
+      item.menuItem.equals(menuItemId)
+    );
+    if (existingItemIndex > -1) { 
+      order.items[existingItemIndex].quantity += quantity;
     } else {
-      cart.items.push({ menuItem: menuItemId, quantity });
+      order.items.push({ menuItem: menuItemId, quantity: quantity });
     }
 
-    await cart.save();
-    res.json({ message: "Item added to cart", cart });
+    order.total = order.items.reduce((acc, item) => {
+      return acc + item.quantity * menuItem.price;
+    }, 0);
+
+    await order.save();
+    await order.populate("items.menuItem");
+
+    res.status(200).json({
+      message: "Item added to cart",
+      success: true,
+      order: order, 
+    });
+
   } catch (error) {
     console.error("Error adding to cart:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Failed to add item to cart" });
   }
 });
 
-// Get user's cart
-router.get("/cart", authenticateUser, async (req, res) => {
+
+router.get("/cart", authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id; // Get user ID from token
-    const cart = await Cart.findOne({ user: userId }).populate("items.menuItem");
+    let order = await Order.findOne({
+      userId: req.myUser.userId,
+      status: "pending",
+      items: { $exists: true, $ne: [] } 
+    }).populate("items.menuItem"); 
 
-    if (!cart) {
-      return res.json({ order: { items: [] } }); // Return empty cart if not found
+     if (!order) {
+      console.warn("No pending order found. Returning an empty cart.");
+      return res.json({ order: { items: [] } });
     }
-
-    res.json({ order: cart });
+    console.log("Returning fully populated Cart order as JSON Cart from backend:", order);
+    res.json({ order: order || { items: [], total: 0 } });
   } catch (error) {
     console.error("Error fetching cart:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Failed to fetch cart" });
   }
 });
 
-module.exports = router;
+export default router;

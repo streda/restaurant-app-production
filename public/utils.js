@@ -1,13 +1,44 @@
-import { menuArray, orderArray } from "./index.js";
+import { menuArray, orderArray} from "./index.js";
+import { handleCompleteOrderButtonClick } from "./checkoutUtils.js";
+
+const API_BASE_URL = "https://truefood.rest";
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  if (urlParams.get("canceled") === "true") {
-    alert("Payment canceled. Restoring your cart.");
-    await restoreCartFromDatabase();
+  try {
+
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (urlParams.get("paymentSuccess") === "true") {
+
+      orderArray.length = 0; 
+      updateOrderSummary(orderArray);
+      toggleOrderSummaryDisplay(false);
+      toggleCompleteOrderButton(false);
+
+      await fetchCartData();
+
+      const newUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+
+    if (urlParams.get("canceled") === "true") {
+      alert("Payment canceled. Restoring your cart.");
+      await restoreCartFromDatabase();
+    }
+
+    const cartData = await fetchCartData(); 
+    orderArray.length = 0; 
+    orderArray.push(...cartData); 
+
+    updateOrderSummary(orderArray);
+    toggleOrderSummaryDisplay(orderArray.length > 0);
+    toggleCompleteOrderButton(orderArray.length > 0);
+
+  } catch (error) {
+    console.error("Failed to load cart on page load:", error);
   }
 });
+
 
 async function restoreCartFromDatabase() {
   const token = localStorage.getItem("token");
@@ -18,7 +49,7 @@ async function restoreCartFromDatabase() {
   }
 
   try {
-    const response = await fetch("https://truefood.rest/cart", {
+    const response = await fetch(`${API_BASE_URL}/api/cart`, {
       method: "GET",
       credentials: "include",
       headers: {
@@ -34,20 +65,19 @@ async function restoreCartFromDatabase() {
 
     const data = await response.json();
 
-    const validCartItems = data.order?.items || [];
+    const cartItems = data.order?.items || [];
 
-    if (validCartItems.length > 0) {
+    if (cartItems.length > 0) {
 
-      // Properly updating `orderArray`
       orderArray.length = 0;
-      orderArray.push(...validCartItems.map(item => ({
+      orderArray.push(...cartItems.map(item => ({
         menuItem: item.menuItem,
         quantity: item.quantity
       })));
 
       updateOrderSummary(orderArray);
-      toggleCompleteOrderButton(true);
       toggleOrderSummaryDisplay(true);
+      toggleCompleteOrderButton(true);
     } else {
       console.warn("Cart was empty upon restoration.");
     }
@@ -55,6 +85,8 @@ async function restoreCartFromDatabase() {
     console.error("Error restoring cart from database:", error);
   }
 }
+
+
 export function renderLandingPage() {
   const menuContainer = document.getElementById("section-menu");
   if (menuContainer) {
@@ -68,6 +100,7 @@ export function renderLandingPage() {
   }
 }
 
+
 export function isLoggedIn() {
   const token = localStorage.getItem("token");
   return !!token;
@@ -80,7 +113,7 @@ export function hideLoginForm() {
   }
 }
 
-export async function fetchMenuItems(redirect = false) {
+export async function fetchMenuItems(justLoggedIn = false) {
   const token = localStorage.getItem("token");
 
   if (!token) {
@@ -90,7 +123,7 @@ export async function fetchMenuItems(redirect = false) {
 
 
   try {
-    const response = await fetch("https://truefood.rest/menu-items", {
+    const response = await fetch(`${API_BASE_URL}/api/menu-items`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -108,9 +141,12 @@ export async function fetchMenuItems(redirect = false) {
     menuArray.length = 0;
     menuArray.push(...data);
 
-    if (redirect) {
-      renderLandingPage();
-      hideLoginForm();
+    if (justLoggedIn) {
+      renderLandingPage(); 
+      hideLoginForm();     
+      renderMenu(menuArray, isLoggedIn()); 
+    } else {
+      renderMenu(menuArray, isLoggedIn()); 
     }
   } catch (error) {
     console.error("Failed to load menu items:", error);
@@ -125,28 +161,8 @@ export async function fetchCartData() {
     return [];
   }
 
-  // Decode and check if token is expired
   try {
-    const payloadBase64 = token.split(".")[1]; 
-    const decodedPayload = JSON.parse(atob(payloadBase64));
-
-
-    if (new Date(decodedPayload.exp * 1000) < new Date()) {
-      console.warn("Token expired, logging out user.");
-      localStorage.removeItem("token");
-      window.location.href = "/login.html";
-      return []; // Prevent further execution
-    }
-  } catch (error) {
-    console.error("Failed to decode JWT:", error);
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-    return [];
-  }
-
-
-  try {
-    const response = await fetch("https://truefood.rest/cart", {
+    const response = await fetch(`${API_BASE_URL}/api/cart`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -167,15 +183,17 @@ export async function fetchCartData() {
     }
 
     const data = await response.json();
-        const validCartItems = data.order.items || [];
+    const cartItems = data?.order.items || [];
 
 
-        // Ensure Order Summary is updated
-        updateOrderSummary(validCartItems);
-        toggleCompleteOrderButton(validCartItems.length > 0);
-         toggleOrderSummaryDisplay(validCartItems.length > 0); 
+ if (cartItems.length === 0) {
+      orderArray.length = 0;
+    }
+        updateOrderSummary(cartItems);
+        toggleOrderSummaryDisplay(cartItems.length > 0); 
+        toggleCompleteOrderButton(cartItems.length > 0);
 
-        return validCartItems;
+        return cartItems;
   } catch (error) {
     console.error("Failed to fetch cart data:", error);
     return [];
@@ -193,38 +211,36 @@ export function renderMenu(menuItems, isUserLoggedIn) {
     console.error("section-menu element is not available on this page.");
     return;
   }
-  menuContainer.innerHTML = ""; // Clear previous items
-  menuItems.forEach((item) => {
+  menuContainer.innerHTML = ""; 
+  menuItems.forEach((menuArray_item) => {
     const menuHtml = document.createElement("div");
     menuHtml.className = "menu-item-container";
-
-    const orderItem = orderArray.find(
-      (order) => order.menuItem._id === item._id
+    const orderItem = orderArray.find((order) => 
+      order.menuItem._id === menuArray_item._id
     );
     const quantity = orderItem ? orderItem.quantity : 0;
     const itemText = quantity > 1 ? "items" : "item";
 
     menuHtml.innerHTML = `
-      <img src="${item.emoji}" class="menu-item-image" alt="${item.name} image">
+      <img src="${menuArray_item.emoji}" class="menu-item-image" alt="${menuArray_item.name} image">
       <div class="menu-item-details">
-        <h3>${item.name}</h3>
-        <p>Ingredients: ${item.ingredients.join(", ")}</p>
-        <p>Price: $${item.price}</p>
+        <h3>${menuArray_item.name}</h3>
+        <p>Ingredients: ${menuArray_item.ingredients.join(", ")}</p>
+        <p>Price: $${menuArray_item.price}</p>
       </div>
   
       <div class="button-quantity-container">
         ${
           isUserLoggedIn
-            ? `<button class="add-btn" data-item-id="${item._id}">Add to Cart</button>`
+            ? `<button class="add-btn" data-item-id="${menuArray_item._id}">Add to Cart</button>`
             : ""
         }
-        <div class="quantity-indicator" id="quantity-indicator-${item._id}">${quantity} ${itemText}</div>
+        <div class="quantity-indicator" id="quantity-indicator-${menuArray_item._id}">${quantity} ${itemText}</div>
       </div>
     `;
     menuContainer.appendChild(menuHtml);
   });
 
-  // Attach event listeners to "Add to Cart" buttons
   if (isUserLoggedIn) {
     document.querySelectorAll(".add-btn").forEach((button) => {
       button.addEventListener("click", async (event) => {
@@ -252,7 +268,7 @@ export async function addItem(itemId) {
   const token = localStorage.getItem("token");
 
   try {
-    const response = await fetch("/add-to-cart", {
+    const response = await fetch("/api/add-to-cart", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -270,18 +286,15 @@ export async function addItem(itemId) {
     }
 
     const data = await response.json();
-    const validCartItems = await fetchCartData();
+    const cartItems = await fetchCartData();
 
     orderArray.length = 0; 
-    orderArray.push(...validCartItems);
+    orderArray.push(...cartItems);
 
-    // Immediately update the UI
-    updateOrderSummary(validCartItems);
-    updateQuantityIndicators(validCartItems);
-
-    // Ensure the order summary section appears immediately after adding an item
-    toggleOrderSummaryDisplay(validCartItems.length > 0);
-    toggleCompleteOrderButton(validCartItems.length > 0);
+    updateOrderSummary(cartItems);
+    updateQuantityIndicators(cartItems);
+    toggleOrderSummaryDisplay(cartItems.length > 0);
+    toggleCompleteOrderButton(cartItems.length > 0);
 
   } catch (error) {
     console.error("Failed to add item to cart:", error);
@@ -298,7 +311,7 @@ export async function addSingleItem(itemId) {
   const token = localStorage.getItem("token");
 
   try {
-    const response = await fetch(`/api/item/update`, {
+    const response = await fetch(`/api/update-item`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -313,9 +326,9 @@ export async function addSingleItem(itemId) {
 
     const data = await response.json();
 
-    const validCartItems = await fetchCartData();
-    updateOrderSummary(validCartItems);
-    updateQuantityIndicators(validCartItems);
+    const cartItems = await fetchCartData();
+    updateOrderSummary(cartItems);
+    updateQuantityIndicators(cartItems);
   } catch (error) {
     console.error("Error updating item:", error);
   }
@@ -325,7 +338,7 @@ export async function removeSingleItem(itemId) {
   const token = localStorage.getItem("token");
 
   try {
-    const response = await fetch(`/api/item/update`, {
+    const response = await fetch(`/api/update-item`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -340,10 +353,10 @@ export async function removeSingleItem(itemId) {
 
     const data = await response.json();
 
-    const validCartItems = await fetchCartData();
+    const cartItems = await fetchCartData();
 
-    updateOrderSummary(validCartItems);
-    updateQuantityIndicators(validCartItems);
+    updateOrderSummary(cartItems);
+    updateQuantityIndicators(cartItems);
   } catch (error) {
     console.error("Error updating item:", error);
   }
@@ -353,7 +366,7 @@ export async function removeAllItem(itemId) {
   const token = localStorage.getItem("token");
 
   try {
-    const response = await fetch(`/api/item/remove`, {
+    const response = await fetch(`/api/remove-item`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -366,99 +379,21 @@ export async function removeAllItem(itemId) {
       throw new Error("Failed to remove item");
     }
 
-    const validCartItems = await fetchCartData();
-    updateOrderSummary(validCartItems);
-    updateQuantityIndicators(validCartItems);
-
-    // Ensure Order Summary visibility updates in real-time
-    toggleOrderSummaryDisplay(validCartItems.length > 0);
-    toggleCompleteOrderButton(validCartItems.length > 0);
+    const cartItems = await fetchCartData();
+    updateOrderSummary(cartItems);
+    updateQuantityIndicators(cartItems);
+    toggleOrderSummaryDisplay(cartItems.length > 0);
+    toggleCompleteOrderButton(cartItems.length > 0);
   } catch (error) {
     console.error("Error removing item:", error);
   }
 }
 
 export function toggleOrderSummaryDisplay(show) {
-  const orderSummaryContainer = document.getElementById("section-summary");
+  const orderSummaryContainer = document.getElementById("order-summary-container");
   
   if (orderSummaryContainer) {
     orderSummaryContainer.style.display = show ? "block" : "none";
-  }
-}
-
-export function toggleCompleteOrderButton(isRequired) {
-  let completeOrderButton = document.getElementById("complete-order-button");
-
-  if (!completeOrderButton) {
-    completeOrderButton = document.createElement("button");
-    completeOrderButton.id = "complete-order-button";
-    completeOrderButton.textContent = "Complete Order";
-    completeOrderButton.classList.add("complete-order-btn");
-    completeOrderButton.disabled = !isRequired;
-    completeOrderButton.addEventListener("click", handleCompleteOrderButtonClick);
-
-    // Attach inside the #section-summary div
-    const orderSummaryContainer = document.getElementById("section-summary");
-    if (orderSummaryContainer) {
-      orderSummaryContainer.appendChild(completeOrderButton);
-    }
-  }
-
-  completeOrderButton.style.display = isRequired ? "block" : "none";
-}
-
-export function createCompleteOrderButton() {
-    const btn = document.createElement("button");
-    btn.id = "complete-order-button";
-    btn.textContent = "Complete Order";
-    btn.classList.add("complete-order-btn");
-    btn.disabled = true; // Initially disabled
-
-    btn.addEventListener("click", handleCompleteOrderButtonClick);
-
-    const orderSummaryContainer = document.getElementById("section-summary"); // Fix: Append inside #section-summary
-    if (orderSummaryContainer) {
-        orderSummaryContainer.appendChild(btn);
-    } else {
-        console.error("#section-summary is MISSING in the DOM!");
-    }
-    return btn;
-}
-
-export function handleCompleteOrderButtonClick() {
-  if (orderArray.length > 0) {
-    handleCheckout(orderArray).catch((error) =>
-      console.error("Checkout failed", error)
-    );
-  } else {
-    alert("Please add items to your order before proceeding to payment.");
-  }
-}
-
-
-export function initializeCheckoutButton() {
-  const checkoutButton = document.getElementById("complete-order-button");
-  
-  if (checkoutButton) {
-    checkoutButton.addEventListener("click", handleCompleteOrderButtonClick);
-  } else {
-    console.error("Checkout button not found");
-  }
-}
-
-export async function updateOrderWithValidItems(orderId, validItems) {
-  const token = localStorage.getItem("token");
-  try {
-    await fetch(`/update-order/${orderId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ items: validItems }),
-    });
-  } catch (error) {
-    console.error("Failed to update order:", error);
   }
 }
 
@@ -478,12 +413,6 @@ export function updateQuantityIndicators(orderArray) {
   });
 }
 
-/*  
-    Client-Side calculateTotalPrice: 
-    On the client side, I need a quick calculation using the data already present in the client’s state. 
-    This function does not need to fetch any additional data and hence can be synchronous.
-  */
-
 export function calculateTotalPrice(orders) {
   return orders.reduce((acc, order) => {
     if (!order.menuItem) {
@@ -494,20 +423,38 @@ export function calculateTotalPrice(orders) {
   }, 0);
 }
 
+
+export function createCompleteOrderButton(isEnabled = false) {
+  const btn = document.createElement("button");
+  btn.id = "complete-order-button";
+  btn.textContent = "Complete Order";
+  btn.classList.add("complete-order-btn");
+  btn.disabled = !isEnabled;
+
+  btn.addEventListener("click", handleCompleteOrderButtonClick);
+  return btn;
+}
+
+export function toggleCompleteOrderButton(isRequired) {
+  const completeOrderButton = document.getElementById("complete-order-button");
+  if (!completeOrderButton) return; 
+  completeOrderButton.style.display = isRequired ? "block" : "none";
+}
+
 export function updateOrderSummary(items) {
   if (!items || !Array.isArray(items)) {
     console.error("Invalid items array:", items);
-    items = []; // Ensuring that items is at least an empty array
+    items = []; 
     return;
   }
 
 
-  const orderSummaryContainer = document.getElementById("section-summary");
+  const orderSummaryContainer = document.getElementById("order-summary-container");
 
   if (!orderSummaryContainer) {
     return;
   }
-  orderSummaryContainer.innerHTML = ""; // Clear previous summary
+  orderSummaryContainer.innerHTML = ""; 
 
   const receiptDate = new Date().toLocaleDateString("en-US", {
     month: "long",
@@ -567,52 +514,11 @@ export function updateOrderSummary(items) {
         </div>
       `;
 
-  orderSummaryContainer.innerHTML = summaryHtml;
+    orderSummaryContainer.innerHTML = summaryHtml;
 
-  //! Ensure button is inside order summary
-    const completeOrderBtn = document.createElement("button");
-    completeOrderBtn.id = "complete-order-button";
-    completeOrderBtn.textContent = "Complete Order";
-    completeOrderBtn.classList.add("complete-order-btn");
-    completeOrderBtn.disabled = items.length === 0; 
-
-    completeOrderBtn.addEventListener("click", handleCompleteOrderButtonClick);
-    orderSummaryContainer.appendChild(completeOrderBtn); // Append inside summary
-
+    orderSummaryContainer.appendChild(createCompleteOrderButton(items.length > 0));
 
   updateQuantityIndicators(items);
   toggleCompleteOrderButton(items.length > 0);
-}
-
-
-
-export default async function handleCheckout(orderArray) {
-  const items = orderArray.map(({menuItem, quantity})=> ({
-    id: menuItem._id,
-    name: menuItem.name,
-    price: menuItem.price,
-    quantity: quantity,
-  }));
-
-  const response = await fetch('https://truefood.rest/create-checkout-session', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ items }), // Send the items to the backend
-});
-
-  if(!response.ok){
-    throw new Error('Network response was not ok.');
-  }
-
-  let session;
-  try {
-    session = await response.json();
-  } catch (error) {
-    throw new Error('Failed to parse JSON response.');
-  }
-  window.location.href = session.url; // Redirect to Stripe Checkout
-
 }
 

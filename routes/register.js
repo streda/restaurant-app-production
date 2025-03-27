@@ -7,7 +7,6 @@ router.post("/register", async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Check if the username already exists
     const existingUser = await User.findOne({ username });
 
     if (existingUser) {
@@ -24,3 +23,5 @@ router.post("/register", async (req, res) => {
 });
 
 export default router;
+
+

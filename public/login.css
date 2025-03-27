@@ -17,21 +17,21 @@
 
   .logo-container  {
     position: relative;
-    max-width: 100%; /* Ensures the container does not exceed the width of its parent */
+    max-width: 100%; 
     text-align: center;
   }
 
   .header-logo{
-    width: 100%; /* Makes the image responsive, filling the width of its container */
+    width: 100%; 
     height: auto; 
     display: block; 
   }
 
   .header-text {
     position: absolute;
-    top: 50%; /* Positions the top edge of the element at the middle of the parent */
-    left: 40%; /* Positions the left edge of the element at the middle of the parent */
-    transform: translate(-50%, -50%); /* Centers the element both horizontally and vertically */
+    top: 50%; 
+    left: 40%; 
+    transform: translate(-50%, -50%); 
     color: white; 
     width: 90%; 
     padding: 10px; 
@@ -40,7 +40,7 @@
 
 
 .header-text h1, .header-text p {
-    margin: 5px 0; /* Vertical margin for spacing, remove horizontal margin */
+    margin: 5px 0; 
     font-size: 15px;
 }
 
